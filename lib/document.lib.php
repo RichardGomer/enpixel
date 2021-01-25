@@ -33,6 +33,25 @@ class Document {
         return $doc;
     }
 
+    public static function getAll() {
+        global $ENPIXEL;
+        $workpath = $ENPIXEL['workpath'];
+
+        $dids = scandir($workpath);
+
+        $docs = [];
+        foreach($dids as $did){
+            try {
+                if($did !== '.' && $did !== '..' && is_dir($workpath.'/'.$did)) {
+                    $docs[] = new Document($did);
+                }
+            } catch (\Exception $e) {
+            }
+        }
+
+        return $docs;
+    }
+
     public function __construct($did) {
 
         global $ENPIXEL;
@@ -165,6 +184,56 @@ class Document {
         return false;
     }
 
+    /**
+     *
+     */
+     public function getFiles() {
+         $files = scandir($this->getDirectoryPath());
+         foreach($files as $i=>$f){
+             if($f == '.' || $f == '..' || $f == 'metadata.json') {
+                 unset($files[$i]);
+             }
+         }
+
+         $files = array_values($files);
+
+         return $files;
+     }
+
+     public function hasFile($name) {
+         if(file_exists($this->path.'/'.$name)) {
+             return true;
+         } else {
+             return false;
+         }
+     }
+
+     public function findFile($pattern) {
+         $files = $this->getFiles();
+
+         foreach($files as $f) {
+             if(fnmatch($pattern, $f))
+                return $f;
+         }
+
+         return false;
+     }
+
+     public function getText() {
+         if($tf = $this->findFile('doc-*.txt')) {
+             return file_get_contents($this->getDirectoryPath().'/'.$tf);
+         }
+     }
+
+     public function delete() {
+         $dir = $this->getDirectoryPath();
+         foreach($this->getFiles() as $f){
+             unlink($dir.'/'.$f);
+         }
+
+         unlink($dir.'/metadata.json'); // getFiles doesn't list the metadata file
+         rmdir($dir);
+     }
 }
 
 class DocumentException extends \Exception {}

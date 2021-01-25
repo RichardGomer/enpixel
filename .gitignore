@@ -1,1 +1,8 @@
 public/work/
+ui/node_modules/
+ui/.cache/
+.cache/
+/vendor/
+/enpixel_rsa
+/enpixel_rsa.pub
+

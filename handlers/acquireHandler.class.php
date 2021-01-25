@@ -38,8 +38,9 @@ class AcquireHandler implements API\APIHandler {
         }
 
         $doc = Document::create();
+        $doc->setStatus(Document::STATUS_BUSY, "Scanning");
 
-        $cmd = 'php ../acquire.php '.escapeshellarg($this->profiles[$profile]).' '.escapeshellarg($doc->getDocumentID()).' | tee -a '.escapeshellarg($doc->getDirectoryPath().'/acquire.log').' 2>/dev/null >/dev/null &';
+        $cmd = 'php ../acquire.php '.escapeshellarg($this->profiles[$profile]).' '.escapeshellarg($doc->getDocumentID()).' 2>&1 | tee -a '.escapeshellarg($doc->getDirectoryPath().'/acquire.log').' 2>/dev/null >/dev/null &';
         $doc->log($cmd);
         exec($cmd);
 

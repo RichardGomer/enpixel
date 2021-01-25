@@ -45,7 +45,16 @@ chdir($doc->getDirectoryPath()); // Change into the document directory
  * Acquire images from the scanner
  */
 status("scanning");
-exec("scanimage ".$profile); // Run the command
+
+
+$cmd = "scanimage ".$profile; 
+
+$workpath = getcwd();
+// key based auth is set up
+$sshcmd = "ssh enpixel@10.0.0.8 -i $wd/../enpixel_rsa \"cd $workpath; $cmd;\"";
+
+echo $sshcmd."\n";
+exec($sshcmd);
 
 /**
  * Create a list of raw image files
@@ -54,11 +63,26 @@ status("indexing");
 exec("ls *.pnm > pages.txt");
 
 /**
+ * Check something got scanned!
+ */
+exec("wc -l < pages.txt", $output);
+if($output[0] < 1) {
+    chdir($wd); // Change back to original working directory
+    $doc->loadMeta(); // Reacquire the metadata lock
+    $doc->setStatus(Document::STATUS_READY, "NO PAGES");
+    exit;
+}
+
+/**
  * Use tesseract to do OCR and produce a single text-enriched PDF
  */
 $fn = 'doc-'.date('Y-m-d-h_i');
-status("ocr");
-exec("tesseract --tessdata-dir /usr/share pages.txt $fn -l eng --psm 1 pdf");
+status("recognising text");
+exec("tesseract --tessdata-dir /usr/share/tesseract-ocr/4.00/tessdata/  pages.txt $fn -l eng --psm 1 pdf");
+
+// Use graphicksmagic to combine into PDF
+//status("creating PDF");
+//exec("gm convert *.pnm $fn.pdf");
 
 /**
  * Extract text
@@ -77,4 +101,4 @@ exec("rm *.pnm pages.txt");
 chdir($wd); // Change back to original working directory
 
 $doc->loadMeta(); // Reacquire the metadata lock
-$doc->setStatus(Document::STATUS_READY, "");
+$doc->setStatus(Document::STATUS_READY, "DONE");

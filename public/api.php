@@ -13,6 +13,12 @@ use QuickAPI as API;
 // Handlers implement specific operations
 require '../handlers/statusHandler.class.php';
 require '../handlers/acquireHandler.class.php';
+require '../handlers/profileHandler.class.php';
+require '../handlers/deleteHandler.class.php';
+require '../handlers/docHandler.class.php';
+require '../handlers/classifyHandler.class.php';
+
+header('Access-Control-Allow-Origin: *');
 
 $api = new API\API(\array_merge($_GET, $_POST), 'action');
 
@@ -22,26 +28,36 @@ $api->addOperation(false, array('status', 'documentid'), $status);
 $scan = new AcquireHandler($ENPIXEL['scanopts']);
 $api->addOperation(false, array('scan', 'profile'), $scan);
 
+$scanners = new ProfileHandler($ENPIXEL['scanopts']);
+$api->addOperation(false, array('scanners'), $scanners);
+
+$del = new DeleteHandler();
+$api->addOperation(false, array('delete', 'documentid'), $del);
+
+$docs = new DocHandler();
+$api->addOperation(false, array('docs'), $docs);
+
+$suggest = new ClassifySuggestHandler($ENPIXEL['classifier']);
+$api->addOperation(false, array('suggest', 'did'), $suggest);
+
+$classify = new ClassifyDoHandler($ENPIXEL['classifier']);
+$api->addOperation(false, array('classify', 'did', 'class'), $classify);
 
 
 class DocumentConverter implements API\APIResultHandler {
     public function prepareResult($res) {
 
-        // Prepare a list of files
-        $files = scandir($res->getDirectoryPath());
-        foreach($files as $i=>$f){
-            if($f == '.' || $f == '..' || $f == 'metadata.json') {
-                unset($files[$i]);
-            }
-        }
+        global $ENPIXEL;
 
-        $files = array_values($files);
+        // Prepare a list of files
+        $files = $res->getFiles();
 
         return array(
             'documentid' => $res->getDocumentID(),
             'status'=>$res->getStatus() == Document::STATUS_BUSY ? "BUSY" : "READY",
             'status_text'=>$res->getStatusText(),
             'metadata'=>$res->getMetadata(),
+            'baseurl'=>$ENPIXEL['httpworkpath'].$res->getDocumentID().'/',
             'files'=>$files
         );
     }
